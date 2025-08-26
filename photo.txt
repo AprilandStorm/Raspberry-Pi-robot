@@ -1,0 +1,72 @@
+环境准备
+安装 OpenCV
+在 Ubuntu / Debian：
+sudo apt update
+sudo apt install libopencv-dev
+这样系统会直接装 opencv2 库和头文件。
+
+编译测试（Linux 示例）：
+g++ photoTest.cpp -o photoTest `pkg-config --cflags --libs libcamera opencv4`
+./photoTest
+
+安装 Poco
+Ubuntu：
+sudo apt install libpoco-dev
+
+
+安装 libcamera 套件
+在 Raspberry Pi OS（Bullseye 及以后版本）上，官方 CSI 摄像头都要用 libcamera 驱动。执行：
+sudo apt update
+sudo apt install libcamera-apps
+
+安装完成后，测试摄像头：
+libcamera-hello
+能看到预览窗口，就说明摄像头驱动正常了。
+
+✅ 编译命令
+bash
+深色版本
+ g++ -o cameraServer cameraServer.cpp `pkg-config --cflags --libs libcamera opencv4` -lPocoUtil -lPocoNet -lPocoFoundation -std=c++17 -pthread
+⚠️ 注意：添加 -lpthread，因为 libcamera 内部使用多线程
+
+使用 ss 命令（推荐）: 这是现代 Linux 系统中更高效的工具。
+sudo ss -tuln 'sport = :8080'
+这个命令会列出所有正在监听 8080 端口的 TCP 和 UDP 连接。你会在输出中看到 PID (进程ID) 和程序名称。
+使用 lsof 命令（如果 ss 不可用）:
+sudo lsof -i :8080
+这个命令也会列出占用该端口的进程信息。
+终止该进程
+找到进程的 PID 后，你可以使用 kill 命令来终止它。
+sudo kill -9 <PID>
+将 <PID> 替换为你找到的实际进程ID。
+
+找到进程 ID (PID):
+你之前使用的 ss 命令默认不显示进程名或 PID。要获取更多详细信息，你可以使用 -p (process) 选项。
+sudo ss -tulnp | grep 8080
+这个命令会显示正在监听 8080 端口的程序的 PID（进程 ID）和名称。输出可能看起来像这样：
+tcp   LISTEN 0      64      0.0.0.0:8080      0.0.0.0:* users:(("photoTest",pid=1234,fd=5))
+在上面的示例中，pid=1234 就是你需要的进程 ID。
+
+
+
+
+
+1. 使用 dpkg 查找头文件位置
+首先，您需要找到 libcamera 的头文件安装在哪里。在基于 Debian 的系统（如树莓派操作系统）中，可以使用 dpkg 命令：
+
+Bash
+
+dpkg -L libcamera-dev
+这个命令会列出 libcamera-dev 软件包安装的所有文件。您会看到类似于 /usr/include/libcamera/ 的路径，这就是头文件所在的地方。
+
+2. 使用 grep 搜索特定函数或类
+找到头文件目录后，您可以使用 grep 命令来搜索您关心的函数或类的声明。例如，如果您想查找 FrameBuffer 类中的所有成员函数，可以执行以下命令：
+
+Bash
+
+grep -r "FrameBuffer::" /usr/include/libcamera/
+-r 表示递归搜索子目录。
+
+"FrameBuffer::" 是您要搜索的模式。
+
+这会返回所有包含 FrameBuffer:: 的行，帮助您了解可用的函数。如果您想了解 FrameBuffer::Plane 结构体，可以搜索 "FrameBuffer::Plane"。

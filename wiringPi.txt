@@ -1,0 +1,85 @@
+安装 WiringPi:
+对于较新的 Raspberry Pi OS (Bullseye 及更新版本): wiringPi 不再默认包含在系统镜像中。你需要从源码安装。
+bash
+深色版本
+# 更新包列表
+sudo apt update
+
+# 安装编译所需工具
+sudo apt install build-essential git
+
+# 克隆 wiringPi 源码仓库
+git clone https://github.com/WiringPi/WiringPi.git
+
+# 进入目录并构建安装
+cd WiringPi
+./build
+
+# 验证安装
+gpio -v
+
+调试/测试 WiringPi:
+安装完成后，可以使用 gpio 命令行工具快速测试 GPIO。
+查看所有引脚状态：gpio readall (这会显示一个表格，包含 BCM 和 WiringPi 的引脚编号)
+设置某个引脚为输出并置高：gpio mode <wiringPi_pin> out 然后 gpio write <wiringPi_pin> 1
+设置某个引脚为输入并读取：gpio mode <wiringPi_pin> in 然后 gpio read <wiringPi_pin>
+
+
+g++ -std=c++17 -O2 -o robot carTest.cpp loborobot.cpp pca9685.cpp -lwiringPi
+# 由于是 header-only 简单实现，这样就能编译（两份 .hpp 直接包含）。
+# 如果你想把实现放到 .cpp，再用下面命令：
+# g++ -std=c++17 -O2 -c pca9685.cpp
+# g++ -std=c++17 -O2 -c loborobot.cpp
+# g++ -std=c++17 -O2 -o robot cartest.cpp pca9685.o loborobot.o -lwiringPi
+sudo ./robot
+
+
+
+1️⃣ 从 Python 控制代码找到线索
+你给的 Python 小车运动例程里有这样的配置：
+self.PWMA = 0
+self.AIN1 = 2
+self.AIN2 = 1
+self.PWMB = 5
+self.BIN1 = 3
+self.BIN2 = 4
+self.PWMC = 6
+self.CIN2 = 7
+self.CIN1 = 8
+self.PWMD = 11
+self.DIN1 = 25
+self.DIN2 = 24
+这里的信息拆开看：
+PWMA = 0 → 代表 PCA9685 的 通道 0 控制 左前轮速度
+PWMB = 5 → PCA9685 通道 5 控制 左后轮速度
+PWMC = 6 → PCA9685 通道 6 控制 右前轮速度
+PWMD = 11 → PCA9685 通道 11 控制 右后轮速度
+而 AIN1/AIN2、BIN1/BIN2 这些，就是方向控制引脚（树莓派 GPIO 控制电机正反转）。
+
+2️⃣ 从扩展板原理图找到物理连接
+你发的扩展板原理图里有 PCA9685 的 LED0 ~ LED15 输出，它们通过驱动芯片（L298N / TB6612 或类似 H 桥）接到 4 个电机的 PWM 输入脚。
+比如：
+LED0 → A 通道 PWM → 电机 M1 (左前)
+LED5 → B 通道 PWM → 电机 M2 (左后)
+LED6 → C 通道 PWM → 电机 M3 (右前)
+LED11 → D 通道 PWM → 电机 M4 (右后)
+
+方向引脚（AIN1、AIN2 等）直接接到树莓派 GPIO，通过高低电平切换控制电机方向。
+
+3️⃣ 把两者对照合并
+电机	Python 例程的 PWM 通道	原理图的 PCA9685 引脚	推算出的 PCA9685 通道
+左前 (M1)	0	LED0	CH0
+左后 (M2)	5	LED5	CH5
+右前 (M3)	6	LED6	CH6
+右后 (M4)	11	LED11	CH11
+
+方向引脚的对应关系，也是 Python 例程和原理图结合推出来的，比如：
+AIN1 = GPIO22 / AIN2 = GPIO27
+BIN1 = GPIO24 / BIN2 = GPIO23
+CIN1 = GPIO16 / CIN2 = GPIO20
+DIN1 = GPIO21 / DIN2 = GPIO26
+
+✅ 所以这是推算逻辑：
+Python 代码给出 PCA9685 通道号和 GPIO 引脚 → 原理图确认这些通道输出去哪里 → 得出最终映射表。
+这样一来，C++ 程序只要用相同的通道和引脚，就能和 Python 控制逻辑完全一致。
+
