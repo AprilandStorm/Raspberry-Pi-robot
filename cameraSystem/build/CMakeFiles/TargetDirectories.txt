@@ -1,0 +1,3 @@
+/home/pi/project/cameraSystem/build/CMakeFiles/camera_server.dir
+/home/pi/project/cameraSystem/build/CMakeFiles/edit_cache.dir
+/home/pi/project/cameraSystem/build/CMakeFiles/rebuild_cache.dir
