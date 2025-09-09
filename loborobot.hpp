@@ -1,15 +1,13 @@
 #pragma once
 #include "pca9685.hpp"
-//#include <wiringPi.h>
 #include <string>
-//#include <iostream>
 
 // ==================== LOBOROBOT 类 ====================
 class LOBOROBOT {
 private:
-    PCA9685 pwm;
+    PCA9685 pwm;//依赖的PWM控制器对象（初始化时创建，用于输出PWM信号）
 
-    // PWM通道映射（和Python一致）
+    // PWM通道映射
     int PWMA = 0, AIN1 = 2, AIN2 = 1;//A是左前
     int PWMB = 5, BIN1 = 3, BIN2 = 4;//B是右前
     int PWMC = 6, CIN2 = 7, CIN1 = 8;//C是左后
@@ -18,9 +16,9 @@ private:
 public:
     LOBOROBOT(bool debug = false);
 
-    void MotorRun(int motor, std::string index, float speed);
+    void MotorRun(int motor, std::string index, float speed);// 电机运转（指定电机、方向、速度）
 
-    void MotorStop(int motor);
+    void MotorStop(int motor);// 单个电机停止
     
     //前进
     void t_up(float speed);
