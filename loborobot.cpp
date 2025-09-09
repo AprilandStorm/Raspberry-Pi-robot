@@ -4,18 +4,21 @@
 #include <cmath>
 
 LOBOROBOT::LOBOROBOT(bool debug) : pwm(1, 0x40, debug) {
+    //初始化PCA9685：I2C总线1（树莓派默认）、地址0x40（PCA9685默认）、调试模式
     pwm.setPWMFreq(50);
-    wiringPiSetupGpio();//启动 BCM 编号，配置 DIN1/DIN2 为输出并默认拉低（D 电机用到了树莓派的两个方向脚）。
-    pinMode(DIN1, OUTPUT);
-    pinMode(DIN2, OUTPUT);
+    //初始化树莓派GPIO（仅用于电机的方向控制，因DIN1/DIN2是GPIO引脚，非PCA9685通道）
+    wiringPiSetupGpio();//初始化 WiringPi 库，并使用 BCM GPIO 编号方式（即 GPIOxx 编号）
+    //配置 DIN1/DIN2 为输出并默认拉低（D电机用到了树莓派的两个方向脚）。
+    pinMode(DIN1, OUTPUT);// BCM GPIO18
+    pinMode(DIN2, OUTPUT);// BCM GPIO21
 }
 
 void LOBOROBOT::MotorRun(int motor, std::string index, float speed) {
     std::cout << "[MotorRun] motor=" << motor << ", dir=" << index << ", speed=" << speed << std::endl;
 
     if (speed > 100) speed = 100;
-    if (motor == 0) {
-        pwm.setDutyCycle(PWMA, speed);
+    if (motor == 0) {// 电机A（左前）
+        pwm.setDutyCycle(PWMA, speed);//设置占空比，调整速度
         if (index == "forward") {
             pwm.setLevel(AIN1, LOW);
             pwm.setLevel(AIN2, HIGH);
@@ -25,7 +28,7 @@ void LOBOROBOT::MotorRun(int motor, std::string index, float speed) {
             pwm.setLevel(AIN2, LOW);
             std::cout << "[GPIO] AIN1=HIGH, AIN2=LOW\n";
         }
-    } else if (motor == 1) {
+    } else if (motor == 1) {//电机B（右前）
         pwm.setDutyCycle(PWMB, speed);
         if (index == "forward") {
             pwm.setLevel(BIN1, HIGH);
@@ -36,7 +39,7 @@ void LOBOROBOT::MotorRun(int motor, std::string index, float speed) {
             pwm.setLevel(BIN2, HIGH);
             std::cout << "[GPIO] BIN1=LOW, BIN2=HIGH\n";
         }
-    } else if (motor == 2) {
+    } else if (motor == 2) {//电机C（左后）
         pwm.setDutyCycle(PWMC, speed);
         if (index == "forward") {
             pwm.setLevel(CIN1, HIGH);
@@ -62,6 +65,7 @@ void LOBOROBOT::MotorRun(int motor, std::string index, float speed) {
 }
 
 void LOBOROBOT::MotorStop(int motor) {
+    // 核心逻辑：将对应电机的PWM占空比设为0（切断电机电源）
     pwm.setDutyCycle(motor == 0 ? PWMA : motor == 1 ? PWMB : motor == 2 ? PWMC : PWMD, 0);
     std::cout << "[MotorStop] motor=" << motor << std::endl;
 }
@@ -155,10 +159,8 @@ void LOBOROBOT::t_stop() {
 }
 
 void LOBOROBOT::setServoAngle(uint8_t ch, float angleDeg) {
-    // Python 版：angle = 4096*((angle*11)+500)/20000  (freq=50Hz 假设 20ms 周期)
-    // 这里直接复刻：500–2500us 对应 0–180 度（≈11us/deg）
-    float pulseUs = (angleDeg * 11.0f) + 500.0f; // 与原脚本一致
-
+    float pulseUs = (angleDeg * 11.0f) + 500.0f; 
+    
     // 通过 pwm 实例调用 PCA9685 的 setServoPulse 方法
     // 注意：这里的调用方式是 pwm.setServoPulse，因为 pwm 是 LOBOROBOT 类的一个成员变量
     pwm.setServoPulse(ch, (int)std::round(pulseUs), 50.0f);
