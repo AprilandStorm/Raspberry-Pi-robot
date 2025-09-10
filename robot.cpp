@@ -9,18 +9,18 @@
 #include "loborobot.hpp"
 
 // ============ 键盘控制工具 ============
-int getch() {//实现无回车输入
+int getch() {//实现无回车输入，按一个键立即响应
     struct termios oldt, newt;
     int ch;
     // 获取当前终端设置
-    tcgetattr(STDIN_FILENO, &oldt);
+    tcgetattr(STDIN_FILENO, &oldt);//tcgetattr：get terminal attributes;STDIN_FILENO：标准输入的文件描述符（值为 0）;&oldt：把当前终端的所有设置保存到 oldt 中
     newt = oldt;
     // 关闭规范模式和回显，实现立即获取输入
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    newt.c_lflag &= ~(ICANON | ECHO);//newt.c_lflag：终端的本地模式标志（local modes），控制输入处理方式
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);//TCSANOW：表示立即生效.其他选项：TCSADRAIN（等待输出完成）、TCSAFLUSH（清空输入输出缓冲区）
     // 等待并获取单个字符
     ch = getchar();
-    //恢复原来的终端设置
+    //恢复原来的终端设置,否则程序退出后，终端会保持无回显、无回车状态，导致你打字看不到，非常混乱
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     return ch;
 }
