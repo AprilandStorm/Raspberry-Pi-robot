@@ -5,17 +5,17 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
-#include <csignal> // 包含信号处理头文件
-#include <lgpio.h> // 包含 lgpio 库的头文件
+#include <csignal> // 包含信号处理头文件,捕获 Ctrl+C（SIGINT）信号
+#include <lgpio.h> // 包含 lgpio 库的头文件,树莓派新一代 GPIO 控制库
 
 // 根据接线修改 GPIO 引脚编号
 #define TRIG 20
 #define ECHO 21
 
 // 全局原子变量，用于线程间安全地传递时间戳
-static std::atomic<bool> trigger_active = false;
-static std::atomic<uint64_t> start_tick = 0;
-static std::atomic<uint64_t> stop_tick = 0;
+static std::atomic<bool> trigger_active = false;// 是否完成一次回波测量
+static std::atomic<uint64_t> start_tick = 0;// 上升沿时间戳（us）
+static std::atomic<uint64_t> stop_tick = 0;// 下降沿时间戳（us）
 
 // 用于控制循环退出的标志位
 std::atomic<bool> run_loop(true);
@@ -41,7 +41,7 @@ void echo_edge_event_handler(int e, lgGpioAlert_s* evt, void *data) {
                 //std::cout << "stop_tick:" << stop_tick;
                 // Set the flag to notify the main thread that measurement is complete
                 if(stop_tick > start_tick){
-                    trigger_active = true;
+                    trigger_active = true;// 通知主线程：测量完成
                 }
             }
         }
@@ -69,7 +69,8 @@ int main() {
 
     // 3. Claim the GPIO for alerts, specifying both rising and falling edges
     // This replaces the event flag parameter in the previous function call
-    int ret2 = lgGpioClaimAlert(handle, 0, LG_BOTH_EDGES, ECHO, -1);
+    //向 Linux 内核注册一个“边沿触发”的 GPIO 中断监听
+    int ret2 = lgGpioClaimAlert(handle, 0, LG_BOTH_EDGES, ECHO, -1);// ECHO 监听双边沿
     if (ret2 < 0) {
         std::cerr << "lgGpioClaimAlert failed, error code: " << ret2 << std::endl;
         lgGpioFree(handle, TRIG);
@@ -78,7 +79,7 @@ int main() {
     }
 
     // 4. 注册 ECHO 引脚的事件监听器（上升沿和下降沿）
-    int ret3 = lgGpioSetAlertsFunc(handle, ECHO, echo_edge_event_handler, nullptr);
+    int ret3 = lgGpioSetAlertsFunc(handle, ECHO, echo_edge_event_handler, nullptr);//当 ECHO 电平变化时，自动调用 echo_edge_event_handler
     if (ret3 != LG_OKAY) {
         std::cerr << "lgGpioSetAlertFunc failed, error code: " << ret3 << std::endl;
         lgGpioFree(handle, TRIG);
@@ -112,7 +113,7 @@ int main() {
         const int mearsurementsNum = 5;//一次测量的次数
         std::vector<double> results;
         for(int i = 0; i < mearsurementsNum; i++){
-            // 6.1. 触发超声波脉冲
+            // 6.1. 触发超声波脉冲,HC-SR04 要求 TRIG 至少拉高 10μs 才会发射超声波
             lgGpioWrite(handle, TRIG, 1);
             lguSleep(0.00001); // 10us
             lgGpioWrite(handle, TRIG, 0);
@@ -138,6 +139,7 @@ int main() {
             //std::cout << "time diff: " << diff << " cast double: " << static_cast<double>(diff) << "\n";
             double distance = static_cast<double>(diff) * 0.034326 / 2.0; // cm
             //std::cout << "Distance: " << distance << "cm" << std::endl;
+            //排除太近的误触发
             if(distance >= 2){
                 results.emplace_back(distance);
             }
@@ -150,7 +152,7 @@ int main() {
             stop_tick = 0;
             trigger_active = false;
     
-            // 6.6. 休眠一段时间，避免过快触发
+            // 6.6. 休眠一段时间，避免过快触发,休眠防抖
             lguSleep(0.1);//0.01s
         }
         
