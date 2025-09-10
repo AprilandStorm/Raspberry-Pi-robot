@@ -2,14 +2,14 @@
 #include <iomanip> // for std::setprecision
 #include <thread>  // for std::this_thread::sleep_for
 #include <chrono>  // for std::chrono::milliseconds
-#include <atomic>
-#include <termios.h>
-#include <unistd.h>
-#include <cstdio>
+#include <atomic>  // 原子变量（autoRotation）
+#include <termios.h> // 终端控制（getch）
+#include <unistd.h> //  POSIX 系统调用（getchar, sleep）
+#include <cstdio>    // C 风格输入输出
 #include "loborobot.hpp"
 
 // ============ 键盘控制工具 ============
-int getch() {
+int getch() {//实现无回车输入
     struct termios oldt, newt;
     int ch;
     // 获取当前终端设置
@@ -46,7 +46,7 @@ int main() {
         float t = 0.5f, angle = 10.0f;
         float baseAngle = 80, topAngle = 0;
         bool autoDirection = true;
-        std::atomic<bool> autoRotation(false); // 控制自动旋转的标志位
+        std::atomic<bool> autoRotation(false); // 控制自动旋转的标志位（原子变量，线程安全）
 
         std::cout << "W/w: 控制小车前进\n";
         std::cout << "S/s: 控制小车后退\n";
@@ -95,7 +95,7 @@ int main() {
             }
         });
 
-        bool running = true;
+        std:;atomic<bool> running = true;
         while (running) {
             int key = getch();
             if (key != EOF) { // 如果按下了按键
