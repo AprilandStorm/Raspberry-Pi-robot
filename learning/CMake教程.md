@@ -32,3 +32,14 @@ cmake .
 cmake ..
 ```
 ## ```make``` 生成可执行程序
+
+## 定制
+### 定义变量
+将文件名对应的字符串存储起来，在cmake里定义变量需要使用```set```
+```
+# []中的参数为可选项，如不需要可以不写
+SET(VAR [VALUE] [CACHE TYPE DOCSTRING [FORCE]])
+set(SRC_LIST add.c;div.c;mian.c;mult.c;sub.c)
+add_executable(app ${SRC_LIST})
+```
+### 指定使用的C++标准
