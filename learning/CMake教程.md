@@ -99,8 +99,54 @@ file(GLOB MAIN_HEAD ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 ## 包含头文件
 在编译项目源文件的时候，很多时候都需要将源文件对应的头文件路径指定出来，这样才能保证在编译过程中编译中编译器能够找到这些头文件，并顺利通过编译。设置语句```include_directory```
 ```
-include_directory(头文件所在路径)
+include_directories(头文件所在路径目录)
 ```
 
 - ```tree -L 1```显示目录结构
-- 
+
+## 制作库
+### 制作静态库
+在cmake中，如果想要制作静态库，需要使用的命令如下：
+```
+add_library(库名称 STATIC 源文件1 [源文件2]...)
+```
+在Linux中，静态库名字分为三个部分：```lib+库名字+.a```，此处只需要指定出库的名字就可以了，另外两部分在生成该文件的时候会自动填充。\
+在windows中虽然库名和linux格式不同，但也只需要指定出名字即可。
+
+### 制作动态库
+```
+add_library(库名称 SHARED 源文件1 [源文件2]...)
+```
+在linux中，动态库的名字分为三部分:```lib+库名字+.so```，此处只需要指定出库的名字就可以了，另外两部分在生成该文件的时候会自动填充\
+在windows中虽然库名和linux格式不同，但也只需要指定出名字即可。
+
+### 指定输出的路径
+linux下生成的动态库默认是有执行权限的
+```
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+```
+
+## 包含库文件
+### 链接静态库
+```
+link_libraries(<static lib> [<static lib>...])
+```
+- 参数1:指定出要链接的静态库的名字
+如果静态库不是系统提供的，可能出现静态库找不到的情况，此时可以先将静态库的路径也指定出来（再链接静态库）：
+```
+link_directories(<lib path>)
+```
+```
+# 递归复制 v2 到 v3（通用写法）
+cp -r v2 v3
+```
+### 链接动态库（写在最后，写在生成可执行文件的后面）
+```
+target_link_libraries(<target> <PRIVATE|PUBLIC|INTERFACE><item>... [<PRIVATE|PUBLIC|INTERFACE><item>...]...)
+```
+- target:指定要加载动态库的文件的名字
+- PRIVATE|PUBLIC|INTERFACE：动态库的访问权限，默认是public
+  1. 如果各个动态库之间没有依赖关系，无需做任何设置，使用默认的PUBLIC即可
+  2. 动态库的链接具有传递性：在public后面的库会被link到前面的target中，并且里面的符号也会被导出，提供给第三方使用；在private后面的库仅会被link到前面的target中，并且终结掉，第三方不能感知你调了什么库；在interface后面引入的库不会被链接到前面的target中，只会导出符号
+
+### 
