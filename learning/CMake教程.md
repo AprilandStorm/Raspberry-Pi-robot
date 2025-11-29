@@ -144,9 +144,74 @@ cp -r v2 v3
 ```
 target_link_libraries(<target> <PRIVATE|PUBLIC|INTERFACE><item>... [<PRIVATE|PUBLIC|INTERFACE><item>...]...)
 ```
+使用target既可以链接动态库文件，也可以链接静态库文件
 - target:指定要加载动态库的文件的名字
 - PRIVATE|PUBLIC|INTERFACE：动态库的访问权限，默认是public
   1. 如果各个动态库之间没有依赖关系，无需做任何设置，使用默认的PUBLIC即可
   2. 动态库的链接具有传递性：在public后面的库会被link到前面的target中，并且里面的符号也会被导出，提供给第三方使用；在private后面的库仅会被link到前面的target中，并且终结掉，第三方不能感知你调了什么库；在interface后面引入的库不会被链接到前面的target中，只会导出符号
 
-### 
+## 日志
+message命令可以为用户显示一条消息
+```
+message([STATUS|WARNING|AUTHOR_WARNING|FATAL_ERROR|SEND_ERROR]"message to display"...)
+```
+- （无）：重要消息
+- STATUS: 非重要消息
+- WARNING: CMake警告，会继续执行
+- AUTHOR WARNING：CMake警告（dev),会继续执行
+- SEND_ERROR：CMake错误，继续执行，但是会跳过生成的步骤
+- FATAL_ERROR: CMake错误，终止所有处理过程
+
+## 字符串操作
+### 使用set拼接
+进行字符串拼接
+```
+set(变量名1 ${变量名1} ${变量名2}...)
+```
+例子：
+```
+set(TEMP "hello world")
+file(GLOB SRC_1 ${PROJECT_SOURCE_DIR}/src1/*.cpp)
+file(GLOB SRC_2 ${PROJECT_SOURCE_DIR}/src2/*.cpp)
+# 拼接
+set(SRC_1 ${SRC_1} ${SRC_2} ${TEMP})
+```
+
+### 使用list进行字符串拼接，
+```
+list(APPEND <list>[<element>...])
+```
+list命令的功能比set强大，需要在第一个参数的位置指定想要进行的操作，APPEND表示要进行数据追加，后面的参数就和set一致\
+例子：
+```
+set(TEMP "hello world")
+file(GLOB SRC_1 ${PROJECT_SOURCE_DIR}/src1/*.cpp)
+file(GLOB SRC_2 ${PROJECT_SOURCE_DIR}/src2/*.cpp)
+# 追加
+list(APPEND SRC_1 ${SRC_1} ${SRC_2} ${TEMP})
+```
+一个在list内部是一个由分号;分割的一组字符串。
+
+### 字符串移除
+```
+list(REMOVE_ITEM <list> <value> [<value>...])
+```
+例子：
+```
+file(GLOB SRC ${PROJECT_SOURCE_DIR}/src/*.cpp)
+list(REMOVE_ITEM SRC ${PROJECT_SOURCE_DIR}/src/main.cpp)
+```
+
+## list
+- 获取list长度```list(LENGTH <list> <output variable>)(<output variable>新创建的变量，用于存储列表的长度）```
+- 读取列表中指定索引的元素，可以指定多个索引```list(GET <list> <element index> [<element index>...] <output variable>)```
+- 将列表中的元素用连接符（字符串）连接起来组成一个字符串```list(JOIN <list> <glue> <output variable>)```
+- 查找列表是否存在指定的元素，如果未找到，返回-1 ```list<FIND <list> <value> <output variable>)```
+- 在list中指定的位置插入若干元素```list(INSERT <list> <element_index> <element> [<element>...])```
+- 将元素插入到列表的0索引位置```list(PREPEND <list> [<element>...])```
+- 将列表中最后元素移除```list(POP_BACK <list> [<out-var>...])```
+- 将列表中第一个元素移除```list(POP_FRONT <list> [<out-var>...])```
+- 将指定索引的元素从列表中移除```list(REMOVE_AT <list> <index> [<index>...])```
+- 移除list中重复的元素 ```list(REMOVE_DUPLICATES<list>)```
+- 列表翻转```list(REVERSE <list>)```
+- 列表排序```list(SORT <list> [COMPARE <compare>][CASE <case>][ORDER <order>])```
